@@ -58,6 +58,7 @@ INSTALLED_APPS = [
 'appointment',
 'job_roles',
 'accounts',
+'job_scraper',
 
 ]
 
