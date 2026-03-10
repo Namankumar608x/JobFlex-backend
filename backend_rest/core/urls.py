@@ -20,7 +20,7 @@ from .views import home
 from django.urls import path, include
 
 urlpatterns = [
-    path('accounts/', include('accounts.urls')),
+    path('user/', include('user.urls')),
     path('',home),
     path('admin/', admin.site.urls),
     path('api/scraper/', include('job_scraper.urls')),
