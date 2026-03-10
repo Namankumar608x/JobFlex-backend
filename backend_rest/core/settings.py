@@ -15,7 +15,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 import dj_database_url
-
+from datetime import timedelta
 # Load environment variables
 
 load_dotenv()
@@ -57,7 +57,6 @@ INSTALLED_APPS = [
 # Local apps
 'application',
 'job_roles',
-'accounts',
 'user',
 'emails',
 'blog',
@@ -208,4 +207,9 @@ REST_FRAMEWORK = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = 'user.User'
+
+SIMPLE_JWT = {
+    "USER_ID_FIELD": "U_ID",
+    "USER_ID_CLAIM": "user_id",
+}
