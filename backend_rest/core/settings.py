@@ -55,9 +55,12 @@ INSTALLED_APPS = [
 'corsheaders',
 
 # Local apps
-'appointment',
+'application',
 'job_roles',
 'accounts',
+'user',
+'emails',
+'blog',
 
 ]
 
