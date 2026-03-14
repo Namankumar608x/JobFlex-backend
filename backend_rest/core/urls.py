@@ -24,4 +24,5 @@ urlpatterns = [
     path('',home),
     path('admin/', admin.site.urls),
     path('api/scraper/', include('job_scraper.urls')),
+    path("gmail/", include("gmail.urls")),
 ]

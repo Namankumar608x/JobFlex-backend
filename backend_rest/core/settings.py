@@ -36,6 +36,10 @@ DEBUG = os.getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = ['*']
 
+# Get credentials
+GMAIL_CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
+GMAIL_TOKEN_PATH = os.path.join(BASE_DIR, 'token.json')
+
 # ================================
 
 # APPLICATIONS
@@ -62,6 +66,7 @@ INSTALLED_APPS = [
 'user',
 'emails',
 'blog',
+'gmail',
 
 
 ]

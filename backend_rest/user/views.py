@@ -20,7 +20,7 @@ User = get_user_model()
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def google_login(request):
-    
+
     token = request.data.get("token")
     print("TOKEN RECEIVED:", token)
 
@@ -62,7 +62,6 @@ def google_login(request):
         return Response({"error": str(e)}, status=401)
 
 
-
 @api_view(['GET'])
 def test_api(request):
     return Response({"message": "Accounts API working"})
@@ -100,7 +99,7 @@ def register(request):
             secure=False,   # True in production (HTTPS)
             samesite="Lax"
         )
- 
+
          # Set refresh token cookie
         response.set_cookie(
             key="refresh_token",
