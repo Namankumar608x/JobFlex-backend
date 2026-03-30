@@ -25,10 +25,23 @@ soupsieve==2.8.3
 sqlparse==0.5.5
 typing_extensions==4.15.0
 tzdata==2025.3
+lxml==5.3.0
 urllib3==2.6.3
+
+# ML / AI
 transformers
 torch
 accelerate
-google-auth
+
+# Google APIs (kept unpinned intentionally)
 google-auth-oauthlib
 google-api-python-client
+
+# -----------------------------
+# 🔴 Duplicates / old versions (commented)
+# -----------------------------
+
+# requests==2.31.0
+# beautifulsoup4==4.12.2
+# fake-useragent==1.5.1
+# google-auth

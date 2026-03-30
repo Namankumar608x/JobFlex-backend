@@ -1,7 +1,6 @@
 # job_scraper/scraper.py
 
 import os
-
 import requests
 import urllib.parse
 from bs4 import BeautifulSoup
@@ -9,20 +8,17 @@ from fake_useragent import UserAgent
 import time
 import random
 
-
-SCRAPE_DO_TOKEN = os.getenv("scrape_do_token")  
+SCRAPE_DO_TOKEN = os.getenv("scrape_do_token")
 ua = UserAgent()
 
 
-def get_html_with_scrape_do(target_url):
-    """
-    VIVA:
-    Sends target URL to scrape.do proxy.
-    Retries 3 times if request fails or times out.
-    render=true executes JavaScript before returning HTML.
-    """
-    encoded_url = urllib.parse.quote(target_url)
+# ─────────────────────────────────────────────────────
+# INTERNSHALA SCRAPER
+# Uses scrape.do proxy + BeautifulSoup to parse HTML
+# ─────────────────────────────────────────────────────
 
+def get_html_with_scrape_do(target_url):
+    encoded_url = urllib.parse.quote(target_url)
     proxy_url = (
         f"http://api.scrape.do/"
         f"?url={encoded_url}"
@@ -31,22 +27,18 @@ def get_html_with_scrape_do(target_url):
         f"&render=true"
         f"&renderTimeout=12000"
     )
-
     headers = {"User-Agent": ua.random}
 
-    # VIVA: Retry 3 times if request fails or times out
     for attempt in range(3):
         try:
             print(f"[Scraper] Attempt {attempt + 1}...")
             response = requests.get(proxy_url, headers=headers, timeout=120)
             response.raise_for_status()
             return response.text
-
         except requests.exceptions.Timeout:
             print(f"Attempt {attempt + 1} timed out. Retrying...")
             time.sleep(3)
             continue
-
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
             return None
@@ -56,82 +48,49 @@ def get_html_with_scrape_do(target_url):
 
 
 def scrape_internshala_jobs(query="python", location="india"):
-    """
-    VIVA:
-    Main scraping function.
-    1. Build URL
-    2. Fetch HTML via scrape.do
-    3. Parse with BeautifulSoup
-    4. Extract job data from each card
-    5. Return list of job dicts
-
-    Real HTML Structure found by inspection:
-    <div class="internship_meta">                   ← parent card
-        <h3 class="job-internship-name">            ← title
-        <p class="company-name">                    ← company
-        <div class="individual_internship_job">     ← details
-            <p class="locations">                   ← location
-            <span class="desktop">                  ← salary
-            row_items[-1] span                      ← experience
-    """
-
-    # Step 1: Build URL
     base_url = f"https://internshala.com/jobs/{query}-jobs-in-{location}"
-    print(f"[Scraper] Fetching: {base_url}")
+    print(f"[Internshala] Fetching: {base_url}")
 
-    # Step 2: Fetch HTML
     html = get_html_with_scrape_do(base_url)
     if not html:
-        print("[Scraper] Failed to fetch HTML.")
+        print("[Internshala] Failed to fetch HTML.")
         return []
 
-    # Step 3: Parse HTML
     soup = BeautifulSoup(html, "lxml")
-
     jobs = []
 
-    # Step 4: Find all job cards
     job_cards = soup.find_all("div", class_="individual_internship_job")
-    print(f"[Scraper] Found {len(job_cards)} job cards")
+    print(f"[Internshala] Found {len(job_cards)} job cards")
 
-    # Step 5: Extract data from each card
     for card in job_cards:
         try:
-            # Go UP to parent div to get title + company
-            # VIVA: find_parent() traverses UP the HTML tree
             parent = card.find_parent("div", class_="internship_meta")
 
-            # ── Job Title ─────────────────────────────────
             title_tag = parent.find("h3", class_="job-internship-name") if parent else None
             title = title_tag.text.strip() if title_tag else "N/A"
 
-            # ── Company Name ──────────────────────────────
             company_tag = parent.find("p", class_="company-name") if parent else None
             company = company_tag.text.strip() if company_tag else "N/A"
 
-            # ── Location ──────────────────────────────────
             location_tag = card.find("p", class_="locations")
             location_text = location_tag.text.strip() if location_tag else "N/A"
 
-            # ── Salary ────────────────────────────────────
             salary_tag = card.find("span", class_="desktop")
             salary = salary_tag.text.strip() if salary_tag else "Not Disclosed"
 
-            # ── Experience ────────────────────────────────
             row_items = card.find_all("div", class_="row-1-item")
             experience = "N/A"
             if len(row_items) >= 1:
                 exp_span = row_items[-1].find("span")
                 experience = exp_span.text.strip() if exp_span else "N/A"
 
-            # ── Job URL ───────────────────────────────────
             link_tag = parent.find("a", class_="job-title-href") if parent else None
             job_url = (
                 "https://internshala.com" + link_tag["href"]
                 if link_tag else "N/A"
             )
 
-            job = {
+            jobs.append({
                 "title": title,
                 "company": company,
                 "location": location_text,
@@ -140,16 +99,102 @@ def scrape_internshala_jobs(query="python", location="india"):
                 "posted_on": "N/A",
                 "job_url": job_url,
                 "source": "Internshala",
-            }
-
-            jobs.append(job)
-            print(f"[Scraper] ✅ {title} at {company}")
+            })
+            print(f"[Internshala] ✅ {title} at {company}")
 
         except Exception as e:
-            print(f"[Scraper] Error parsing card: {e}")
+            print(f"[Internshala] Error parsing card: {e}")
             continue
 
         time.sleep(random.uniform(0.5, 1))
 
-    print(f"[Scraper] Successfully scraped {len(jobs)} jobs")
+    print(f"[Internshala] Successfully scraped {len(jobs)} jobs")
+    return jobs
+
+
+# ─────────────────────────────────────────────────────
+# REMOTEOK SCRAPER
+# Uses free public JSON API - no proxy needed!
+# API Docs: https://remoteok.com/api
+# data[0] = metadata, data[1:] = actual jobs
+# ─────────────────────────────────────────────────────
+
+def scrape_remoteok_jobs(query="python"):
+    """
+    VIVA:
+    RemoteOK provides a free public REST API.
+    No scraping needed - just a simple GET request.
+    Returns JSON directly with all job data.
+
+    API URL: https://remoteok.com/api?tag=QUERY
+    Response: List of job dicts
+        - position  → job title
+        - company   → company name
+        - location  → job location
+        - salary_min/max → salary range
+        - tags      → skill tags
+        - url       → job URL
+        - date      → posted date
+    """
+
+    url = f"https://remoteok.com/api?tag={urllib.parse.quote(query)}"
+    print(f"[RemoteOK] Fetching: {url}")
+
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+
+    except requests.exceptions.RequestException as e:
+        print(f"[RemoteOK] Request failed: {e}")
+        return []
+
+    except ValueError:
+        print("[RemoteOK] Failed to parse JSON response")
+        return []
+
+    # data[0] is metadata not a job - skip it
+    # VIVA: data[1:] means "from index 1 to end" (skip first item)
+    raw_jobs = data[1:] if len(data) > 1 else []
+    print(f"[RemoteOK] Found {len(raw_jobs)} jobs")
+
+    jobs = []
+    for job in raw_jobs:
+        try:
+            # Build salary string from min/max
+            # VIVA: salary_min/max are integers, 0 means not disclosed
+            salary_min = job.get("salary_min", 0)
+            salary_max = job.get("salary_max", 0)
+
+            if salary_min and salary_max:
+                salary = f"${salary_min:,} - ${salary_max:,}"
+            elif salary_min:
+                salary = f"${salary_min:,}+"
+            else:
+                salary = "Not Disclosed"
+
+            # Build tags string from list
+            # VIVA: ", ".join(list) converts list to comma-separated string
+            tags = job.get("tags", [])
+            tags_str = ", ".join(tags[:5]) if tags else "N/A"  # max 5 tags
+
+            jobs.append({
+                "title": job.get("position", "N/A"),
+                "company": job.get("company", "N/A"),
+                "location": job.get("location", "Remote") or "Remote",
+                "salary": salary,
+                "experience": tags_str,  # using tags as skills/experience
+                "posted_on": job.get("date", "N/A"),
+                "job_url": job.get("url", "N/A"),
+                "source": "RemoteOK",
+            })
+            print(f"[RemoteOK] ✅ {job.get('position')} at {job.get('company')}")
+
+        except Exception as e:
+            print(f"[RemoteOK] Error parsing job: {e}")
+            continue
+
+    print(f"[RemoteOK] Successfully fetched {len(jobs)} jobs")
     return jobs
