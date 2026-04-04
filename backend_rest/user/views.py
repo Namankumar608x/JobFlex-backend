@@ -217,3 +217,29 @@ def refresh_token(request):
 
     except Exception:
         return Response({"error": "Invalid refresh token"}, status=401)
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def extension_login(request):
+    email = request.data.get("email")
+    password = request.data.get("password")
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({"error": "Invalid credentials"}, status=401)
+
+    if not user.check_password(password):
+        return Response({"error": "Invalid credentials"}, status=401)
+
+    refresh = RefreshToken.for_user(user)
+
+    return Response({
+        "success": True,
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "user": {
+            "id": user.U_ID,
+            "uname": user.uname,
+            "email": user.email
+        }
+    })
