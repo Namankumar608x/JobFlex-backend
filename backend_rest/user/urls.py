@@ -10,7 +10,6 @@ urlpatterns = [
     path('register/', register),
     path("login/", login, name="login"),
     path("extension-login/", extension_login, name="extension-login"),  # NEW
-    path("refresh/", TokenRefreshView.as_view(), name="refresh"),
     path("refresh/", refresh_token, name="refresh"),
     path("me/", me),
     path("logout/", logout),

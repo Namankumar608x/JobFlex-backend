@@ -67,6 +67,7 @@ INSTALLED_APPS = [
 'emails',
 'blog',
 'gmail',
+'dashboard'
 
 
 ]
