@@ -17,15 +17,49 @@ User = get_user_model()
 
 
 @api_view(["GET"])
-def fetch_leetcode(request, username):
-    data = fetch_leetcodeData(username)
-    return Response(data) 
+@permission_classes([IsAuthenticated])
+def fetch_leetcode(request):
+    username = getattr(request.user, "Leetcode_username", None)
+
+    if not username:
+        print("Lc username not found")
+        return Response(
+            {"error": "LeetCode username not set"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        data = fetch_leetcodeData(username)
+        return Response(data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 
 @api_view(["GET"])
-def fetch_codeforces(request, username):
-    data = fetch_CFData(username)
-    return Response(data)
+@permission_classes([IsAuthenticated])
+def fetch_codeforces(request):
+    username = getattr(request.user, "Codeforces_username", None)
+
+    if not username:
+        print("CF username not found")
+        return Response(
+    
+            {"error": "Codeforces username not set"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        data = fetch_CFData(username)
+        return Response(data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(["POST"])

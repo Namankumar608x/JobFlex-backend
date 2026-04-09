@@ -11,6 +11,6 @@ urlpatterns = [
     path("me/", me),
     path("logout/", logout),
     path("auth/google/", google_login),
-    path("leetcode/<str:username>/", fetch_leetcode),
-    path("codeforces/<str:username>/", fetch_codeforces),
+    path("leetcode/", fetch_leetcode),
+    path("codeforces/", fetch_codeforces),
 ]
