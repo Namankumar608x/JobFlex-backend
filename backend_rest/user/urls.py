@@ -1,7 +1,4 @@
 from django.urls import path
-
-
-
 from .views import test_api,register,me,login,logout,google_login,fetch_leetcode,fetch_codeforces,refresh_token,extension_login
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
