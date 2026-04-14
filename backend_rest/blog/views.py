@@ -1,11 +1,20 @@
-from django.shortcuts import render
+from django.db.models import Count, Prefetch
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
 from rest_framework.response import Response
 from .models import Blog, Comment, Upvote
 from .serializer import BlogSerializer, CommentSerializer
 from rest_framework.permissions import AllowAny
+
+
+def get_blog_queryset():
+    comment_queryset = Comment.objects.select_related("U_ID").order_by("created_at")
+    return (
+        Blog.objects.select_related("U_ID")
+        .annotate(upvote_count=Count("upvotes"))
+        .prefetch_related(Prefetch("comments", queryset=comment_queryset))
+        .order_by("-id")
+    )
 
 # GET all blogs / POST new blog
 # function-based API views
@@ -15,7 +24,7 @@ from rest_framework.permissions import AllowAny
 def blog_list(request):
     
     if request.method == "GET":
-        blogs = Blog.objects.all()
+        blogs = get_blog_queryset()
         serializer = BlogSerializer(blogs, many=True)  # to json
         return Response(serializer.data)  # json->response
 
@@ -32,7 +41,10 @@ def blog_list(request):
 @permission_classes([AllowAny])
 def blog_detail(request, pk):
     try:
-        blog = Blog.objects.get(pk=pk)
+        if request.method == "GET":
+            blog = get_blog_queryset().get(pk=pk)
+        else:
+            blog = Blog.objects.get(pk=pk)
     except Blog.DoesNotExist:
         return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
     if request.method == "GET":
