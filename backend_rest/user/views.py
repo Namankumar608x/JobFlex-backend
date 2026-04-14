@@ -9,7 +9,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from django.conf import settings
 from redis_client import redis_client
-from .services.leetcode import fetch_leetcodeData 
+from .services.leetcode import fetch_leetcodeData
 from .services.codeforces import fetch_CFData
 
 GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
@@ -98,7 +98,6 @@ def google_login(request):
         )
 
         email = idinfo["email"]
-
         user, created = User.objects.get_or_create(
             email=email,
             defaults={
@@ -122,7 +121,7 @@ def google_login(request):
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,   # True in production
+            secure=False,
             samesite="Lax"
         )
         
@@ -154,7 +153,6 @@ def register(request):
     if serializer.is_valid():
         user = serializer.save()
 
-        # generate JWT tokens
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
@@ -175,7 +173,7 @@ def register(request):
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,   # True in production (HTTPS)
+            secure=False,
             samesite="Lax"
         )
 
@@ -191,6 +189,7 @@ def register(request):
         return response
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 @api_view(['GET'])
@@ -221,7 +220,7 @@ def login(request):
     refresh = RefreshToken.for_user(user)
     access_token = str(refresh.access_token)
     refresh_token = str(refresh)
-    
+
     response = Response({
         "message": "Login successful",
         "user": {
@@ -231,16 +230,13 @@ def login(request):
         }
     })
 
-    # Access token cookie
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,   # True in production
+        secure=False,
         samesite="Lax"
     )
-
-    # Refresh token cookie
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
