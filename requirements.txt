@@ -27,11 +27,16 @@ typing_extensions==4.15.0
 tzdata==2025.3
 lxml==5.3.0
 urllib3==2.6.3
+pandas
+redis
 
 # ML / AI
 transformers
 torch
 accelerate
+pymupdf
+sentence-transformers
+supabase
 
 # Google APIs (kept unpinned intentionally)
 google-auth-oauthlib

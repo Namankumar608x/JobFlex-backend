@@ -1,5 +1,7 @@
 import base64
 import re
+from email.utils import parseaddr, parsedate_to_datetime
+from datetime import datetime
 
 def decode_email_body(payload: dict) -> str:
     """
@@ -42,6 +44,29 @@ def extract_headers(headers: list) -> dict:
     This converts it to a simple dictionary for easy access.
     """
     return {h["name"].lower(): h["value"] for h in headers}
+
+def extract_email_address(header_value: str) -> str:
+    """
+    Extracts purely the email address from a header value like 'John Doe <john@example.com>'.
+    Falls back to the raw string if parsing fails.
+    """
+    if not header_value:
+        return ""
+    name, address = parseaddr(header_value)
+    return address if address else header_value.strip()
+
+def normalize_timestamp(date_str: str) -> str:
+    """
+    Normalizes standard email date headers (RFC 2822) to 'YYYY-MM-DD HH:MM:SS'.
+    """
+    if not date_str:
+        return ""
+    try:
+        dt = parsedate_to_datetime(date_str)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return date_str
+
 
 # Words commonly found in ads/opportunity emails but NOT in status update emails
 AD_KEYWORDS = [

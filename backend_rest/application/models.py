@@ -1,5 +1,6 @@
 from django.db import models
-from user.models import User
+# from user.models import User
+from django.conf import settings
 
 class Application(models.Model):
     STATUS_CHOICES = [
@@ -21,7 +22,7 @@ class Application(models.Model):
     location = models.CharField(max_length=200, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     changed_at = models.DateTimeField(auto_now=True)
-    U_ID = models.ForeignKey(User, on_delete=models.CASCADE, db_column='U_ID')
+    U_ID = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='U_ID')
 
     class Meta:
         db_table = 'application'

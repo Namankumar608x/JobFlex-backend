@@ -17,15 +17,49 @@ User = get_user_model()
 
 
 @api_view(["GET"])
-def fetch_leetcode(request, username):
-    data = fetch_leetcodeData(username)
-    return Response(data)
+@permission_classes([IsAuthenticated])
+def fetch_leetcode(request):
+    username = getattr(request.user, "Leetcode_username", None)
+
+    if not username:
+        print("Lc username not found")
+        return Response(
+            {"error": "LeetCode username not set"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        data = fetch_leetcodeData(username)
+        return Response(data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 
 @api_view(["GET"])
-def fetch_codeforces(request, username):
-    data = fetch_CFData(username)
-    return Response(data)
+@permission_classes([IsAuthenticated])
+def fetch_codeforces(request):
+    username = getattr(request.user, "Codeforces_username", None)
+
+    if not username:
+        print("CF username not found")
+        return Response(
+    
+            {"error": "Codeforces username not set"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        data = fetch_CFData(username)
+        return Response(data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(["POST"])
@@ -44,13 +78,23 @@ def google_login(request):
         email = idinfo["email"]
         user, created = User.objects.get_or_create(
             email=email,
-            defaults={"uname": email.split("@")[0]}
+            defaults={
+                "uname": email.split("@")[0],
+            }
         )
 
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
-        response = Response({"message": "Login success"})
+        response = Response({
+            "message": "Login success",
+            "user": {
+                "id": user.U_ID,
+                "uname": user.uname,
+                "email": user.email
+            }
+        })
+
         response.set_cookie(
             key="access_token",
             value=access_token,
@@ -58,6 +102,15 @@ def google_login(request):
             secure=False,
             samesite="Lax"
         )
+        
+        response.set_cookie(
+            key="refresh_token",
+            value=str(refresh),
+            httponly=True,
+            secure=False,
+            samesite="Lax"
+        )
+
         return response
 
     except Exception as e:
@@ -71,6 +124,7 @@ def test_api(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
 
@@ -92,6 +146,7 @@ def register(request):
             "access": access_token
         }, status=status.HTTP_201_CREATED)
 
+        # Set access token cookie
         response.set_cookie(
             key="access_token",
             value=access_token,
@@ -99,6 +154,8 @@ def register(request):
             secure=False,
             samesite="Lax"
         )
+
+        # Set refresh token cookie
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
@@ -106,15 +163,17 @@ def register(request):
             secure=False,
             samesite="Lax"
         )
+        
+        return response
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    return response
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):
     user = request.user
-    print(user)
     return Response({
         "id": user.U_ID,
         "uname": user.uname,
@@ -123,6 +182,7 @@ def me(request):
 
 
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def login(request):
     email = request.data.get("email")
     password = request.data.get("password")
@@ -167,6 +227,7 @@ def login(request):
 
 
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def logout(request):
     response = Response({"message": "Logged out"})
     response.delete_cookie("access_token")
@@ -175,48 +236,69 @@ def logout(request):
 
 
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def refresh_token(request):
-    # Read from body (extension) OR cookie (web)
-    refresh = request.data.get("refresh") or request.COOKIES.get("refresh_token")
-
-    if not refresh:
-        return Response({"error": "No refresh token"}, status=401)
+    """
+    Refresh the access token using the refresh token from cookies.
+    
+    Can accept refresh token from:
+    1. Cookies (httpOnly)
+    2. Request body (for extensions/mobile apps)
+    """
+    # Try to get refresh token from cookies first, then from request body
+    refresh_token_str = request.COOKIES.get("refresh_token") or request.data.get("refresh")
+    
+    if not refresh_token_str:
+        return Response(
+            {"error": "No refresh token provided"}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     try:
-        token = RefreshToken(refresh)
-        access_token = str(token.access_token)
-
+        refresh = RefreshToken(refresh_token_str)
+        access_token = str(refresh.access_token)
+        
         response = Response({
-            "access": access_token
+            "message": "Token refreshed successfully",
+            "access": access_token  # Also return in body for non-cookie clients
         })
 
+        # Update access token cookie
         response.set_cookie(
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,
+            secure=False,  # True in production
             samesite="Lax"
         )
 
         return response
 
-    except Exception:
-        return Response({"error": "Invalid refresh token"}, status=401)
+    except Exception as e:
+        print("Token refresh error:", e)
+        return Response(
+            {"error": "Invalid or expired refresh token"}, 
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def extension_login(request):
+    """
+    Login endpoint for browser extensions/mobile apps that can't use httpOnly cookies.
+    Returns tokens in response body.
+    """
     email = request.data.get("email")
     password = request.data.get("password")
 
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
-        return Response({"error": "Invalid credentials"}, status=401)
+        return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
     if not user.check_password(password):
-        return Response({"error": "Invalid credentials"}, status=401)
+        return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
     refresh = RefreshToken.for_user(user)
 
@@ -229,4 +311,4 @@ def extension_login(request):
             "uname": user.uname,
             "email": user.email
         }
-    })
+    }, status=status.HTTP_200_OK)

@@ -33,6 +33,9 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 SECRET_KEY = os.getenv("SECRET_KEY")
 REDIS_URL=os.getenv("REDIS_URL")
 DEBUG = os.getenv("DEBUG") == "True"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
 
 ALLOWED_HOSTS = ['*']
 
@@ -67,6 +70,8 @@ INSTALLED_APPS = [
 'emails',
 'blog',
 'gmail',
+'dashboard',
+'resume',
 
 
 ]
@@ -230,4 +235,6 @@ AUTH_USER_MODEL = 'user.User'
 SIMPLE_JWT = {
     "USER_ID_FIELD": "U_ID",
     "USER_ID_CLAIM": "user_id",
+     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
