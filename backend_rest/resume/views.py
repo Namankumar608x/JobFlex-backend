@@ -168,6 +168,7 @@ def ats_scan(request):
     """
     jd_text = request.data.get("jd_text", "").strip()
 
+
     if not jd_text:
         return Response({"error": "No job description provided."}, status=400)
 

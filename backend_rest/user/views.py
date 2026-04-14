@@ -201,8 +201,22 @@ def me(request):
         "id": user.U_ID,
         "uname": user.uname,
         "email": user.email,
+     
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def profile_details(request):
+    user = request.user
+
+    return Response({
+        "id": user.U_ID,
+        "uname": user.uname,
+        "email": user.email,
         "leetcode_username":user.Leetcode_username,
-        "codeforces_username":user.Codeforces_username
+        "codeforces_username":user.Codeforces_username,""
+        "date_joined":user.date_joined,
+        "is_active":user.is_active
     })
 
 

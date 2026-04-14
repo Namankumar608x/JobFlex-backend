@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import test_api,register,me,login,logout,google_login,fetch_leetcode,fetch_codeforces,refresh_token,extension_login,update_profile_links
+from .views import test_api,register,me,login,logout,google_login,fetch_leetcode,fetch_codeforces,refresh_token,extension_login,update_profile_links,profile_details
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
@@ -14,4 +14,5 @@ urlpatterns = [
     path("auth/google/", google_login),
     path("leetcode/", fetch_leetcode),
     path("codeforces/", fetch_codeforces),
+    path("profile/", profile_details),
 ]

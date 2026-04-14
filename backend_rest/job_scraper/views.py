@@ -3,12 +3,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
+import json
 from .models import ScrapedJob
 from .serializers import ScrapedJobSerializer
 from .scraper import scrape_internshala_jobs, scrape_remoteok_jobs
-
-
+from redis_client import redis_client
+CACHE_TTL=24*60*60
 class ScrapeJobsView(APIView):
     """
     Endpoint: GET /api/scraper/scrape/
@@ -22,7 +22,11 @@ class ScrapeJobsView(APIView):
         query    = request.query_params.get("query", "python")
         location = request.query_params.get("location", "india")
         source   = request.query_params.get("source", "all").lower()
-
+        key=f"postings_{location}_{query}"
+        data=redis_client.get(key)
+        if data:
+            print("returning cached postings")
+            return json.loads(data)
         scraped_jobs = []
 
         # Call scraper based on source param
@@ -63,6 +67,11 @@ class ScrapeJobsView(APIView):
             saved_jobs.append(obj)
 
         serializer = ScrapedJobSerializer(saved_jobs, many=True)
+        redis_client.setex( 
+            key,
+            CACHE_TTL,
+            json.dumps(serializer.data)
+        )
         return Response(
             {
                 "success": True,

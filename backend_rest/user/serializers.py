@@ -16,23 +16,28 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-
 class UserProfileLinksUpdateSerializer(serializers.ModelSerializer):
     leetcode_username = serializers.CharField(
         source='Leetcode_username',
         required=False,
         allow_blank=True,
         allow_null=True,
-        max_length=100,
     )
     codeforces_username = serializers.CharField(
         source='Codeforces_username',
         required=False,
         allow_blank=True,
         allow_null=True,
-        max_length=100,
     )
 
     class Meta:
         model = User
-        fields = ['linkedin_url', 'leetcode_username', 'codeforces_username']
+        fields = [
+            "uname",
+            "email",
+            "bio",
+            "location",
+            "linkedin_url",
+            "leetcode_username",
+            "codeforces_username",
+        ]
