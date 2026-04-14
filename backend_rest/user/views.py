@@ -196,10 +196,13 @@ def register(request):
 @permission_classes([IsAuthenticated])
 def me(request):
     user = request.user
+    print(user)
     return Response({
         "id": user.U_ID,
         "uname": user.uname,
-        "email": user.email
+        "email": user.email,
+        "leetcode_username":user.Leetcode_username,
+        "codeforces_username":user.Codeforces_username
     })
 
 
@@ -331,6 +334,7 @@ def extension_login(request):
         "user": {
             "id": user.U_ID,
             "uname": user.uname,
-            "email": user.email
+            "email": user.email,
+            
         }
     }, status=status.HTTP_200_OK)
