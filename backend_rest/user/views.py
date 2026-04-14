@@ -1,6 +1,6 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, UserProfileLinksUpdateSerializer
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -14,6 +14,28 @@ from .services.codeforces import fetch_CFData
 
 GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
 User = get_user_model()
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def update_profile_links(request):
+    serializer = UserProfileLinksUpdateSerializer(
+        request.user,
+        data=request.data,
+        partial=True,
+    )
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {
+                "message": "Profile links updated successfully",
+                "user": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["GET"])

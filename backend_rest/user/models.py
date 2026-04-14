@@ -14,6 +14,7 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['uname']
     Leetcode_username = models.CharField(max_length=100, null=True, blank=True)
     Codeforces_username = models.CharField(max_length=100, null=True, blank=True)
+    linkedin_url = models.URLField(max_length=500, null=True, blank=True)
 
     class Meta:
         db_table = 'user'
