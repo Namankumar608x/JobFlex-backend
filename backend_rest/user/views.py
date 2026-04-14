@@ -3,19 +3,13 @@ from rest_framework.response import Response
 from .serializers import RegisterSerializer
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import get_user_model
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from django.contrib.auth.models import User
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenRefreshView
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import AllowAny
 from django.conf import settings
 from redis_client import redis_client
-from .services.leetcode import fetch_leetcodeData 
+from .services.leetcode import fetch_leetcodeData
 from .services.codeforces import fetch_CFData
 
 GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
@@ -23,20 +17,20 @@ User = get_user_model()
 
 
 @api_view(["GET"])
-def fetch_leetcode(request,username):
-    data=fetch_leetcodeData(username)
-    return Response(data) 
+def fetch_leetcode(request, username):
+    data = fetch_leetcodeData(username)
+    return Response(data)
+
 
 @api_view(["GET"])
-def fetch_codeforces(request,username):
-    data=fetch_CFData(username)
+def fetch_codeforces(request, username):
+    data = fetch_CFData(username)
     return Response(data)
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def google_login(request):
-
     token = request.data.get("token")
     print("TOKEN RECEIVED:", token)
 
@@ -48,32 +42,25 @@ def google_login(request):
         )
 
         email = idinfo["email"]
-
         user, created = User.objects.get_or_create(
-          email=email,
-          defaults={
-          "uname": email.split("@")[0],
-       }
-      )
+            email=email,
+            defaults={"uname": email.split("@")[0]}
+        )
 
         refresh = RefreshToken.for_user(user)
-
         access_token = str(refresh.access_token)
 
         response = Response({"message": "Login success"})
-
         response.set_cookie(
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,   # True in production
+            secure=False,
             samesite="Lax"
         )
-
         return response
 
     except Exception as e:
-
         print("Google auth error:", e)
         return Response({"error": str(e)}, status=401)
 
@@ -85,38 +72,33 @@ def test_api(request):
 
 @api_view(['POST'])
 def register(request):
-
     serializer = RegisterSerializer(data=request.data)
 
     if serializer.is_valid():
         user = serializer.save()
 
-        # generate JWT tokens
         refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
 
-        response= Response({
+        response = Response({
             "message": "User registered successfully",
             "user": {
                 "id": user.U_ID,
                 "uname": user.uname,
                 "email": user.email
             },
-            "refresh": str(refresh),
-            "access": str(refresh.access_token)
+            "refresh": refresh_token,
+            "access": access_token
         }, status=status.HTTP_201_CREATED)
 
-        access_token=str(refresh.access_token)
-        refresh_token=str(refresh)
-         # Set access token cookie
         response.set_cookie(
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,   # True in production (HTTPS)
+            secure=False,
             samesite="Lax"
         )
-
-         # Set refresh token cookie
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
@@ -126,6 +108,7 @@ def register(request):
         )
 
     return response
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -137,6 +120,7 @@ def me(request):
         "uname": user.uname,
         "email": user.email
     })
+
 
 @api_view(["POST"])
 def login(request):
@@ -154,7 +138,7 @@ def login(request):
     refresh = RefreshToken.for_user(user)
     access_token = str(refresh.access_token)
     refresh_token = str(refresh)
-    
+
     response = Response({
         "message": "Login successful",
         "user": {
@@ -164,16 +148,13 @@ def login(request):
         }
     })
 
-    # Access token cookie
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,   # True in production
+        secure=False,
         samesite="Lax"
     )
-
-    # Refresh token cookie
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -183,6 +164,7 @@ def login(request):
     )
 
     return response
+
 
 @api_view(["POST"])
 def logout(request):
@@ -194,16 +176,19 @@ def logout(request):
 
 @api_view(["POST"])
 def refresh_token(request):
-    refresh_token = request.COOKIES.get("refresh_token")
+    # Read from body (extension) OR cookie (web)
+    refresh = request.data.get("refresh") or request.COOKIES.get("refresh_token")
 
-    if not refresh_token:
+    if not refresh:
         return Response({"error": "No refresh token"}, status=401)
 
     try:
-        refresh = RefreshToken(refresh_token)
-        access_token = str(refresh.access_token)
+        token = RefreshToken(refresh)
+        access_token = str(token.access_token)
 
-        response = Response({"message": "Token refreshed"})
+        response = Response({
+            "access": access_token
+        })
 
         response.set_cookie(
             key="access_token",
@@ -217,6 +202,8 @@ def refresh_token(request):
 
     except Exception:
         return Response({"error": "Invalid refresh token"}, status=401)
+
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def extension_login(request):
