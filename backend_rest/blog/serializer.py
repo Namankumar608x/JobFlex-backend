@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import Blog, Comment, Upvote
-from user.models import User
 
 class CommentSerializer(serializers.ModelSerializer):
     uname = serializers.SerializerMethodField()
@@ -10,10 +9,8 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['id', 'blog', 'U_ID', 'comment_text', 'created_at', 'uname']
 
     def get_uname(self, obj):
-        try:
-            return obj.U_ID.uname
-        except:
-            return "Anonymous"
+        user = getattr(obj, "U_ID", None)
+        return getattr(user, "uname", "Anonymous")
 
 class BlogSerializer(serializers.ModelSerializer):
     uname = serializers.SerializerMethodField()
@@ -25,11 +22,11 @@ class BlogSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'blogtext', 'U_ID', 'uname', 'upvote_count', 'comments']
 
     def get_uname(self, obj):
-        try:
-            user = User.objects.get(U_ID=obj.U_ID_id)
-            return user.uname
-        except User.DoesNotExist:
-            return "Anonymous"
+        user = getattr(obj, "U_ID", None)
+        return getattr(user, "uname", "Anonymous")
 
     def get_upvote_count(self, obj):
+        annotated_count = getattr(obj, "upvote_count", None)
+        if annotated_count is not None:
+            return annotated_count
         return obj.upvotes.count()

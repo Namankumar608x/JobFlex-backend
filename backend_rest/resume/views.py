@@ -95,6 +95,69 @@ def get_resume(request):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
+def analyze_resume(request):
+    """
+    POST /api/resume/analyze/
+    Combined endpoint: accepts a PDF resume + job description in one request,
+    extracts text, runs ATS scoring, persists the resume, and returns results.
+
+    FormData fields:
+      - resume: PDF file
+      - jd_text: job description text
+    """
+    file = request.FILES.get("resume")
+    jd_text = request.data.get("jd_text", "").strip()
+
+    if not file:
+        return Response({"error": "No resume file provided."}, status=400)
+
+    if not file.name.lower().endswith(".pdf"):
+        return Response({"error": "Only PDF files are accepted."}, status=400)
+
+    if not jd_text:
+        return Response({"error": "No job description provided."}, status=400)
+
+    if len(jd_text.split()) < 30:
+        return Response({
+            "error": "Job description is too short to score accurately. "
+                     "Paste the full job posting for best results."
+        }, status=400)
+
+    # Extract text from PDF
+    extracted_text = extract_text_from_pdf(file)
+
+    if not extracted_text or len(extracted_text.split()) < 50:
+        return Response({
+            "error": "Could not extract enough text from this PDF. "
+                     "Make sure it is not a scanned image or empty document."
+        }, status=400)
+
+    # Run ATS scoring
+    results = score_resume(extracted_text, jd_text)
+
+    # Persist resume to Supabase + DB (same logic as upload_resume)
+    try:
+        existing = Resume.objects.get(user=request.user)
+        delete_resume_from_supabase(existing.file_path)
+    except Resume.DoesNotExist:
+        pass
+
+    file.seek(0)
+    file_path = upload_resume_to_supabase(file, request.user.username)
+
+    Resume.objects.update_or_create(
+        user=request.user,
+        defaults={
+            "file_path": file_path,
+            "extracted_text": extracted_text,
+        },
+    )
+
+    return Response(results)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def ats_scan(request):
     """
     POST /api/resume/ats-scan/
@@ -104,6 +167,7 @@ def ats_scan(request):
     runs ATS scoring against the provided JD, returns full results.
     """
     jd_text = request.data.get("jd_text", "").strip()
+
 
     if not jd_text:
         return Response({"error": "No job description provided."}, status=400)

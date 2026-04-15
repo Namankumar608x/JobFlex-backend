@@ -8,20 +8,34 @@ from django.db.models import Count
 
 @api_view(['GET'])
 def dashboard_summary(request):
-    user_id = request.GET.get('user_id')  # or use request.user if auth
-    user=request.user
-    # print(type(request.user))
-    # print(request.user.__dict__)
-    data = Application.objects.filter(U_ID=user)
+    try:
+        user = request.user
+        data = Application.objects.filter(U_ID=user)
 
-    total = data.count()
+        total = data.count()
 
-    status_counts = data.values('status').annotate(count=Count('status'))
+        status_counts = data.values('status').annotate(count=Count('status'))
 
-    return Response({
-        "total": total,
-        "status": {item['status']: item['count'] for item in status_counts}
-    }) 
+        status_dict = {
+            "applied": 0,
+            "accepted": 0,
+            "rejected": 0
+        }
+
+        for item in status_counts:
+            key = item['status'].lower()
+            if key in status_dict:
+                status_dict[key] = item['count']
+      
+        return Response({
+            "total": total,
+            "status": status_dict
+        })
+
+    except Exception as e:
+        print("ERROR:", e)
+        return Response({"error": str(e)}, status=500)
+
 from django.db.models.functions import TruncDate
 @api_view(['GET'])
 def platform_stats(request):

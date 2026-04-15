@@ -1,6 +1,6 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, UserProfileLinksUpdateSerializer
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -14,6 +14,28 @@ from .services.codeforces import fetch_CFData
 
 GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
 User = get_user_model()
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def update_profile_links(request):
+    serializer = UserProfileLinksUpdateSerializer(
+        request.user,
+        data=request.data,
+        partial=True,
+    )
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {
+                "message": "Profile links updated successfully",
+                "user": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["GET"])
@@ -174,10 +196,27 @@ def register(request):
 @permission_classes([IsAuthenticated])
 def me(request):
     user = request.user
+    print(user)
     return Response({
         "id": user.U_ID,
         "uname": user.uname,
-        "email": user.email
+        "email": user.email,
+     
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def profile_details(request):
+    user = request.user
+
+    return Response({
+        "id": user.U_ID,
+        "uname": user.uname,
+        "email": user.email,
+        "leetcode_username":user.Leetcode_username,
+        "codeforces_username":user.Codeforces_username,""
+        "date_joined":user.date_joined,
+        "is_active":user.is_active
     })
 
 
@@ -309,6 +348,7 @@ def extension_login(request):
         "user": {
             "id": user.U_ID,
             "uname": user.uname,
-            "email": user.email
+            "email": user.email,
+            
         }
     }, status=status.HTTP_200_OK)
