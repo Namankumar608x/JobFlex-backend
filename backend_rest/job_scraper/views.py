@@ -22,11 +22,12 @@ class ScrapeJobsView(APIView):
         query    = request.query_params.get("query", "python")
         location = request.query_params.get("location", "india")
         source   = request.query_params.get("source", "all").lower()
-        key=f"postings_{location}_{query}"
+        key=f"postings_{location}_{query}_{source}"
+        
         data=redis_client.get(key)
         if data:
             print("returning cached postings")
-            return json.loads(data)
+            return Response(json.loads(data.decode()))
         scraped_jobs = []
 
         # Call scraper based on source param
@@ -70,7 +71,7 @@ class ScrapeJobsView(APIView):
         redis_client.setex( 
             key,
             CACHE_TTL,
-            json.dumps(serializer.data)
+            json.dumps(serializer.data,default=str)
         )
         return Response(
             {

@@ -10,5 +10,5 @@ urlpatterns = [
     path('api/applications/', include('application.urls')),  # NEW
     path('gmail/', include('gmail.urls')),
     path('api/blogs/', include('blog.urls')),
-    path('api/resume/', include('resume.urls')),
+    # path('api/resume/', include('resume.urls')),
 ]
