@@ -2,8 +2,6 @@
 from rest_framework import serializers
 from .models import ScrapedJob
 
-
-
 class ScrapedJobSerializer(serializers.ModelSerializer):
 
     class Meta:

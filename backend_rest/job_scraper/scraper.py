@@ -1,5 +1,3 @@
-# job_scraper/scraper.py
-
 import os
 import requests
 import urllib.parse
@@ -11,11 +9,6 @@ import random
 SCRAPE_DO_TOKEN = os.getenv("scrape_do_token")
 ua = UserAgent()
 
-
-# ─────────────────────────────────────────────────────
-# INTERNSHALA SCRAPER
-# Uses scrape.do proxy + BeautifulSoup to parse HTML
-# ─────────────────────────────────────────────────────
 
 def get_html_with_scrape_do(target_url):
     encoded_url = urllib.parse.quote(target_url)
@@ -112,12 +105,6 @@ def scrape_internshala_jobs(query="python", location="india"):
     return jobs
 
 
-# ─────────────────────────────────────────────────────
-# REMOTEOK SCRAPER
-# Uses free public JSON API - no proxy needed!
-# API Docs: https://remoteok.com/api
-# data[0] = metadata, data[1:] = actual jobs
-# ─────────────────────────────────────────────────────
 
 def scrape_remoteok_jobs(query="python"):
     """
@@ -155,16 +142,13 @@ def scrape_remoteok_jobs(query="python"):
         print("[RemoteOK] Failed to parse JSON response")
         return []
 
-    # data[0] is metadata not a job - skip it
-    # VIVA: data[1:] means "from index 1 to end" (skip first item)
     raw_jobs = data[1:] if len(data) > 1 else []
     print(f"[RemoteOK] Found {len(raw_jobs)} jobs")
 
     jobs = []
     for job in raw_jobs:
         try:
-            # Build salary string from min/max
-            # VIVA: salary_min/max are integers, 0 means not disclosed
+           
             salary_min = job.get("salary_min", 0)
             salary_max = job.get("salary_max", 0)
 
@@ -175,8 +159,7 @@ def scrape_remoteok_jobs(query="python"):
             else:
                 salary = "Not Disclosed"
 
-            # Build tags string from list
-            # VIVA: ", ".join(list) converts list to comma-separated string
+       
             tags = job.get("tags", [])
             tags_str = ", ".join(tags[:5]) if tags else "N/A"  # max 5 tags
 
@@ -185,7 +168,7 @@ def scrape_remoteok_jobs(query="python"):
                 "company": job.get("company", "N/A"),
                 "location": job.get("location", "Remote") or "Remote",
                 "salary": salary,
-                "experience": tags_str,  # using tags as skills/experience
+                "experience": tags_str, 
                 "posted_on": job.get("date", "N/A"),
                 "job_url": job.get("url", "N/A"),
                 "source": "RemoteOK",

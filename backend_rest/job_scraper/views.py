@@ -1,4 +1,3 @@
-# job_scraper/views.py
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -24,8 +23,6 @@ class ScrapeJobsView(APIView):
         source   = request.query_params.get("source", "all").lower()
 
         scraped_jobs = []
-
-        # Call scraper based on source param
         if source == "internshala":
             scraped_jobs = scrape_internshala_jobs(query=query, location=location)
 
@@ -33,7 +30,6 @@ class ScrapeJobsView(APIView):
             scraped_jobs = scrape_remoteok_jobs(query=query)
 
         else:
-            # source == "all" → scrape both and combine
             internshala_jobs = scrape_internshala_jobs(query=query, location=location)
             remoteok_jobs    = scrape_remoteok_jobs(query=query)
             scraped_jobs     = internshala_jobs + remoteok_jobs
@@ -44,7 +40,6 @@ class ScrapeJobsView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Save to DB (skip duplicates using get_or_create)
         saved_jobs = []
         for job_data in scraped_jobs:
             obj, created = ScrapedJob.objects.get_or_create(
@@ -97,8 +92,7 @@ class JobListView(APIView):
         if location:
             queryset = queryset.filter(location__icontains=location)
         if source:
-            # iexact = case-insensitive exact match
-            # e.g. "remoteok" matches "RemoteOK"
+
             queryset = queryset.filter(source__iexact=source)
 
         serializer = ScrapedJobSerializer(queryset, many=True)
