@@ -88,11 +88,12 @@ def application_list(request):
         return Response({'success': True, 'applications': serializer.data})
 
     if request.method == 'POST':
-        data = request.data.copy()
-        serializer = ApplicationSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save(U_ID=request.user)
-            return Response({'success': True, 'application': serializer.data}, status=status.HTTP_201_CREATED)
+   
+        serializer = ApplicationSerializer(data=request.data)
+
+        if serializer.is_valid(): 
+           serializer.save(U_ID=request.user)
+           return Response({'success': True, 'application': serializer.data}, status=status.HTTP_201_CREATED)
         return Response({'success': False, 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 

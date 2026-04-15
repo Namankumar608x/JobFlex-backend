@@ -25,8 +25,12 @@ class ScrapeJobsView(APIView):
         
         data=redis_client.get(key)
         if data:
-            print("returning cached postings")
-            return Response(json.loads(data.decode()))
+           print("returning cached postings")
+
+           if isinstance(data, bytes):
+              data = data.decode()
+
+           return Response(json.loads(data))
         scraped_jobs = []
         if source == "internshala":
             scraped_jobs = scrape_internshala_jobs(query=query, location=location)
@@ -63,10 +67,18 @@ class ScrapeJobsView(APIView):
             saved_jobs.append(obj)
 
         serializer = ScrapedJobSerializer(saved_jobs, many=True)
+        response_data = {
+    "success": True,
+    "count": len(saved_jobs),
+    "query": query,
+    "location": location,
+    "source": source,
+    "jobs": serializer.data,
+}
         redis_client.setex( 
             key,
             CACHE_TTL,
-            json.dumps(serializer.data,default=str)
+            json.dumps(response_data,default=str)
         )
         return Response(
             {
